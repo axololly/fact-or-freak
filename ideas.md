@@ -8,3 +8,7 @@
     - All the data will be present on the database, so this is easily fetchable.
 
 4. Separate all the views into their own files so they're easily readable and accessable.
+
+5. Have a `/guide` command that explains how to play the game.
+
+6. Have an explanation of the inner workings on the `README` of this project.
