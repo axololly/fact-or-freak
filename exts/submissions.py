@@ -2,17 +2,12 @@ from bot import MyBot
 from datetime import datetime as dt
 from decals import CHECK, CROSS
 from discord import ButtonStyle as BS, Colour, Embed, Interaction, Member, TextStyle
-from discord.app_commands import command as app_command, Group
+from discord.app_commands import Group
 from discord.ext.commands import Cog
 from discord.ui import View, button, Modal, TextInput
-from enum import Enum
+from .enums import Category
 from re import match
 from sqlite3 import IntegrityError
-
-class Category(Enum):
-    Empty = 0
-    Truth = 1
-    Dare = 2
 
 class BulkSubmissionModal(Modal):
     field = TextInput(
@@ -110,10 +105,16 @@ class BulkSubmissionModal(Modal):
 # ------------------------------------------------------------------------------------------------------------------------
 
 class SingleSubmissionModal(Modal):
-    field = TextInput(
+    question = TextInput(
         label = "Question",
         placeholder = "Write your question here...",
         min_length = 20
+    )
+
+    addressed_to = TextInput(
+        label = "For who?",
+        placeholder = "Leave blank to make it for everyone.",
+        required = False
     )
     
     def __init__(self, category: Category) -> None:
@@ -125,6 +126,21 @@ class SingleSubmissionModal(Modal):
         self.category = category
 
     async def on_submit(self, interaction: Interaction):
+        if username := self.addressed_to.value:
+            if member := interaction.guild.get_member_named(username):
+                addressed_to_id = member.id
+            else:
+                return await interaction.response.send_message(
+                    embed = Embed(
+                        title = f"{CROSS}  Schizos aren't allowed.",
+                        description = f"Looks like I couldn't find anyone in the _{interaction.guild.name}_ server under the name `{username}`.\n\nCheck the name is right and try it again.",
+                        colour = Colour.brand_red()
+                    )
+                )
+        
+        else:
+            addressed_to_id = -1
+
         now = dt.now()
         is_pm, hour = divmod(now.hour, 12)
         formatted_datetime = f"{hour}:{now.minute:0>2}{['a', 'p'][is_pm]}m"
@@ -132,11 +148,11 @@ class SingleSubmissionModal(Modal):
         async with interaction.client.pool.acquire() as conn:
             try:
                 await conn.execute(
-                    "INSERT INTO questions (submitter_id, when_submitted, category, content) VALUES (?, ?, ?, ?)",
-                    interaction.user.id, int(now.timestamp()), self.category.value, self.field.value
+                    "INSERT INTO questions (submitter_id, when_submitted, category, content, addressed_to) VALUES (?, ?, ?, ?, ?)",
+                    interaction.user.id, int(now.timestamp()), self.category.value, self.question.value, addressed_to_id
                 )
             except IntegrityError:
-                req = await conn.execute("SELECT submitter_id, when_submitted FROM questions WHERE content = ?", self.field.value)
+                req = await conn.execute("SELECT submitter_id, when_submitted FROM questions WHERE content = ?", self.question.value)
                 row = await req.fetchone()
 
                 user_who_submitted = interaction.client.get_user(row['submitter_id']) or await interaction.client.fetch_user(row['submitter_id'])
@@ -156,7 +172,8 @@ class SingleSubmissionModal(Modal):
         await interaction.response.send_message(
             embed = Embed(
                 title = f"{CHECK}  All done!",
-                description = "Your question went through perfectly fine! You'll see it in future rounds.",
+                description = "Your question went through perfectly fine! You'll see it in future rounds"
+                            + ("." if addressed_to_id == -1 else f", especially if `{member.name}` gets on."),
                 colour = Colour.brand_green()
             ).set_footer(
                 text = f"Submission time: {formatted_datetime}"
@@ -174,13 +191,6 @@ class CategorySelectionView(View):
         super().__init__(timeout = 30)
         self.member = member
         self.selection = Category.Empty
-    
-    async def interaction_check(self, interaction: Interaction) -> bool:
-        if interaction.user != self.member:
-            await interaction.response.send_message("This isn't your interaction.")
-            return False
-        
-        return True
     
     async def after_selection(self, interaction: Interaction) -> None:
         modal = SingleSubmissionModal(self.selection)
@@ -207,7 +217,7 @@ class CategorySelectionView(View):
 
         self.stop()
     
-    @button(label = "Truth", style = BS.green)
+    @button(label = "Truth", style = BS.blurple)
     async def truth(self, interaction: Interaction, _):
         self.selection = Category.Truth
         
@@ -221,7 +231,7 @@ class CategorySelectionView(View):
 
 # ------------------------------------------------------------------------------------------------------------------------
 
-class TruthOrDare(Cog):
+class Submissions(Cog):
     def __init__(self, bot: MyBot) -> None:
         self.bot = bot
         self.pool = bot.pool
@@ -234,7 +244,7 @@ class TruthOrDare(Cog):
 
         await interaction.response.send_message(
             embed = Embed(
-                description = "Select which type of phrase you want to contribute:",
+                description = "Select which type of phrase you want to contribute.",
                 colour = Colour.dark_embed()
             ),
             view = view,
@@ -258,4 +268,4 @@ class TruthOrDare(Cog):
             )
 
 async def setup(bot: MyBot):
-    await bot.add_cog(TruthOrDare(bot))
+    await bot.add_cog(Submissions(bot))

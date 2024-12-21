@@ -2,6 +2,9 @@ from asqlite import create_pool, Pool
 from discord.ext.commands import Bot
 from discord import Intents, Activity, ActivityType
 from glob import glob
+from exts.statistics.update import UpdateStatistics
+
+OWNER_ID = 566653183774949395
 
 class MyBot(Bot):
     pool: Pool
@@ -16,6 +19,7 @@ class MyBot(Bot):
     
     async def setup_hook(self) -> None:
         self.pool = await create_pool('data.sql')
+        UpdateStatistics.pool = self.pool
 
         for path in glob('exts/**/*.py', recursive = True):
             if 'async def setup' in open(path, errors = "ignore").read():
