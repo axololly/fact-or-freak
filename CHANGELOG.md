@@ -1,4 +1,4 @@
-# Changes Made
+# Changelog
 
 ## v1.0.0
 
@@ -10,3 +10,13 @@
 - Features an ending screen where the leaderboard of players is displayed
 - The owner (yes, me) gets a custom _Developer_ badge whenever they join any lobbies
 - Features a lobby system where multiple users can create and host their own games
+
+## v1.0.1
+
+> Submitted on 21/12/2024
+
+- Organised classes and utilities into separate files
+- Added the first `/statistics` menu - incomplete
+- Added a `statistics` table that tracks various aspects of the game
+- Added new art for the hearts in the game
+- ...

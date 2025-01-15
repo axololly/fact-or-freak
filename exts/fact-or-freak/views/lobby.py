@@ -1,21 +1,18 @@
 from __future__ import annotations
-from decals import CHECK, CROSS, OWNER_CROWN, DEVELOPER
+from bot import OWNER_ID
+from .bases import FixedTimeView
+from decals import CHECK, CROSS, OWNER_CROWN, DEVELOPER, HEART_SPIN, HEART_SHINE
 from discord import AllowedMentions, ButtonStyle as BS, Colour, Embed, Interaction, Member
-from discord.ui import View, button, Button
-from enum import Enum
-
-class LobbyExitCodes(Enum):
-    Normal = 0
-    LeaderLeft = 1
-    LeaderSkipped = 2
+from discord.ui import button, Button
+from ..enums import LobbyExitCodes
 
 class StartEarly(Button):
-    view: Lobby
+    view: Lobby # type: ignore
 
     def __init__(self, leader: Member) -> None:
         super().__init__(
             label = "Start Early",
-            style = BS.blurple
+            style = BS.green
         )
         self.leader = leader
     
@@ -30,21 +27,13 @@ class StartEarly(Button):
 
         self.view.exit_code = LobbyExitCodes.LeaderSkipped
 
-        """
-        for sibling in self.view.children:
-            sibling.style = BS.grey
-            sibling.disabled = True
-        
-        self.style = BS.green
-        """
-
         await interaction.response.edit_message(
             embed = Embed(
-                title = "Lobby Commencing...",
+                title = f"{HEART_SPIN}  Lobby Commencing...",
                 description = '\n'.join(
-                    [ f"1. {self.leader.mention}  {OWNER_CROWN}" ]
+                    [ f"1. {self.leader.mention}  {OWNER_CROWN}  {HEART_SHINE} {HEART_SHINE} {HEART_SHINE}" ]
                   + [
-                        f"- {member.mention}"
+                        f"- {member.mention}  {HEART_SHINE} {HEART_SHINE} {HEART_SHINE}"
                         for member in self.view.members
                         if member != self.leader
                     ]
@@ -56,15 +45,19 @@ class StartEarly(Button):
         )
         self.view.stop()
 
-class Lobby(View):
+class Lobby(FixedTimeView):
+    children: list[Button] # type: ignore
+    
     # Set of user IDs currently in lobbies
     in_lobbies: set[Member] = set()
 
-    def __init__(self, leader: Member) -> None:
-        super().__init__()
+    def __init__(self, timeout: float, leader: Member, name: str) -> None:
+        super().__init__(timeout = timeout)
 
         self.members: list[Member] = [leader]
         self.leader = leader
+        self.lobby_name = name
+
         self.in_lobbies.add(self.leader)
         
         self.start_early_button = StartEarly(leader)
@@ -85,14 +78,14 @@ class Lobby(View):
             self.add_item(self.start_early_button)
 
         await interaction.followup.edit_message(
-            interaction.message.id,
+            interaction.message.id, # type: ignore
 
             embed = Embed(
-                title = "Players Waiting",
+                title = f"{HEART_SPIN}  {self.lobby_name}",
                 description = '\n'.join(
-                    [ f"1. {self.leader.mention}  {OWNER_CROWN}{f"  {DEVELOPER}" if self.leader.id == 566653183774949395 else ""}" ]
+                    [ f"1. {self.leader.mention}  {OWNER_CROWN}{f"  {DEVELOPER}" if self.leader.id == OWNER_ID else ""}" ]
                   + [
-                        f"- {member.mention}{f"  {DEVELOPER}" if member.id == 566653183774949395 else ""}"
+                        f"- {member.mention}{f"  {DEVELOPER}" if member.id == OWNER_ID else ""}"
                         for member in self.members
                         if member != self.leader
                     ]
@@ -102,7 +95,7 @@ class Lobby(View):
             view = self
         )
     
-    @button(label = "Join Lobby", style = BS.green)
+    @button(label = "Join Lobby", style = BS.blurple)
     async def join_lobby(self, interaction: Interaction, _):
         if interaction.user in self.in_lobbies:
             return await interaction.response.send_message(
@@ -124,8 +117,8 @@ class Lobby(View):
                 ephemeral = True
             )
     
-        self.members.append(interaction.user)
-        self.in_lobbies.add(interaction.user)
+        self.members.append(interaction.user) # type: ignore
+        self.in_lobbies.add(interaction.user) # type: ignore
 
         await interaction.response.send_message(
             embed = Embed(
@@ -154,7 +147,8 @@ class Lobby(View):
                                    "-# Maybe they didn't have friends in the first place.",
                     colour = Colour.brand_red()
                 ),
-                view = self
+                view = self,
+                delete_after = 6.0
             )
 
             return self.stop()

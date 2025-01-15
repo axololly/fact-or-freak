@@ -1,5 +1,9 @@
-# Truth or Dare (soon to be Fact or Freak)
+# Fact-or-Freak
 
-A Discord bot I made for my friends and completed a working version of, in just 3 days.
+A Truth-or-Dare Discord bot I made for my friends in three days.
 
-This is blank because it's 11pm and I should be in bed right now.
+## Contributions
+
+Thank you to:
+- [Brendan](https://emoji.gg/user/577266974476992523) for the emojis
+- [Jakub Ordak](https://discord.com/users/1081127725877710868) for the questions
