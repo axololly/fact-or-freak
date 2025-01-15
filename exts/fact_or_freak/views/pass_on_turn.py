@@ -1,8 +1,8 @@
 from __future__ import annotations
-from .bases import OwnedView
-from decals import CHECK
+from ..decals import CHECK
 from discord import ButtonStyle as BS, Colour, Embed, Interaction, Member
-from discord.ui import View, Button
+from discord.ui import Button
+from ...utils.bases import OwnedView
 
 class UserOptionButton(Button):
     view: PassOnTurnUI # type: ignore

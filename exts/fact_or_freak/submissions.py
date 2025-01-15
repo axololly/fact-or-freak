@@ -1,6 +1,6 @@
 from bot import MyBot
 from datetime import datetime as dt
-from decals import CHECK, CROSS
+from .decals import CHECK, CROSS
 from discord import ButtonStyle as BS, Colour, Embed, Interaction, Member, TextStyle
 from discord.app_commands import Group
 from discord.ext.commands import Cog

@@ -1,11 +1,11 @@
-from .bases import OwnedView
 from .confirm_pass import ConfirmPassUI
-from decals import CHECK, CROSS
+from ..decals import CHECK, CROSS
 from discord import ButtonStyle as BS, Colour, Embed, Interaction, Member
 from discord.ui import button
 from ..enums import PromptExitCode
 from ..modals.response_box import ResponseBoxModal
 from time import time
+from ...utils.bases import OwnedView
 
 class GetResponseUI(OwnedView):
     def __init__(self, question: str, deciding_member: Member, member_lives_left: int) -> None:

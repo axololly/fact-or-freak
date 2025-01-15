@@ -1,6 +1,6 @@
 from bot import MyBot, OWNER_ID
 from .category_select import CategorySelectionUI
-from decals import GOLD, SILVER, BRONZE, DEVELOPER, CROSS, HEART_SHINE, HEART_BREAK
+from ..decals import GOLD, SILVER, BRONZE, DEVELOPER, CROSS, HEART_SHINE, HEART_BREAK
 from discord import Colour, Embed, Interaction, Member, Message, TextChannel
 from discord.ui import View
 from ..enums import PromptExitCode

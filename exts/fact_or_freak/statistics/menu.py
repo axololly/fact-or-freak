@@ -1,7 +1,7 @@
-from decals import BRONZE, SILVER, GOLD, DIAMOND, DEVELOPER, PURPLE_BADGE
+from ..decals import BRONZE, SILVER, GOLD, DIAMOND, DEVELOPER, PURPLE_BADGE
 from discord import Embed, Interaction, Member, SelectOption
 from discord.ui import Select
-from ..views.bases import OwnedView
+from ...utils.bases import OwnedView
 from .update import UpdateStatistics as Stats
 
 def format_seconds(seconds: int) -> str:
@@ -30,6 +30,8 @@ def format_seconds(seconds: int) -> str:
 
 
 class StatisticSelection(Select):
+    view: 'StatisticsPageMenu' # type: ignore
+
     def __init__(self) -> None:
         super().__init__(
             placeholder = "Select a category...",

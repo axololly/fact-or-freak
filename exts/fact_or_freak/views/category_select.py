@@ -1,9 +1,11 @@
-from .bases import FixedTimeView, OwnedView
 from discord import Interaction, Member, ButtonStyle as BS
 from discord.ui import button, Button
 from ..enums import CategorySelectionResponse
+from ...utils.bases import OwnedView
 
 class CategorySelectionUI(OwnedView):
+    children: list[Button] # type: ignore
+    
     def __init__(self, deciding_member: Member) -> None:
         super().__init__(deciding_member)
 

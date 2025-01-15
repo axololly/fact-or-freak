@@ -6,10 +6,10 @@ from discord.app_commands import command as app_command, rename as arg_rename, d
 from discord.ext.commands import Cog, CommandInvokeError
 from .enums import LobbyExitCodes
 from .views.game_ui import GameUI
-from .views.lobby import Lobby
+from ..utils.lobby import Lobby
 from .statistics.update import UpdateStatistics as Stats
 
-class Game(Cog):
+class FactOrFreakGame(Cog):
     def __init__(self, bot: MyBot) -> None:
         self.bot = bot
         self.pool = bot.pool
@@ -112,7 +112,7 @@ class Game(Cog):
             game._end_time, # type: ignore
             game.runtime
         )
-            
+
 
 async def setup(bot):
-    await bot.add_cog(Game(bot))
+    await bot.add_cog(FactOrFreakGame(bot))
