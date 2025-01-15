@@ -1,8 +1,8 @@
 from __future__ import annotations
 from bot import MyBot, OWNER_ID
-from decals import CROSS, OWNER_CROWN, DEVELOPER
+from .decals import CROSS, OWNER_CROWN, DEVELOPER
 from discord import ButtonStyle as BS, Colour, Interaction, Embed
-from discord.app_commands import command as app_command, rename as arg_rename, describe as arg_describe
+from discord.app_commands import command as app_command, rename as arg_rename, describe as arg_describe, allowed_contexts, allowed_installs
 from discord.ext.commands import Cog, CommandInvokeError
 from .enums import LobbyExitCodes
 from .views.game_ui import GameUI
@@ -14,6 +14,8 @@ class Game(Cog):
         self.bot = bot
         self.pool = bot.pool
     
+    @allowed_installs(guilds = True, users = False)
+    @allowed_contexts(guilds = True, dms = False, private_channels = False)
     @app_command(name = "play", description = "Play a game of Truth or Dare.")
     @arg_rename(lobby_name = "name")
     @arg_describe(lobby_name = "Set a custom name for the lobby you're about to create.")
@@ -30,7 +32,7 @@ class Game(Cog):
         
         lobby = Lobby(
             timeout = 30.0,
-            leader = interaction.user,
+            leader = interaction.user, # type: ignore
             name = lobby_name
         )
         
@@ -91,18 +93,25 @@ class Game(Cog):
             case LobbyExitCodes.LeaderLeft:
                 return
 
-        game = GameUI(lobby.members)
+        game = GameUI(
+            members = lobby.members,
+            bot = self.bot
+        )
 
         [
             await Stats.create_new_user(player.id)
             for player in lobby.members
         ]
 
-        await Stats.update_on_lobby_start([(m.id,) for m in lobby.members])
+        await Stats.update_on_lobby_start([m.id for m in lobby.members])
 
-        await game.run(interaction)
+        await game.run(interaction.channel) # type: ignore
 
-        await Stats.update_on_game_end([(m.id,) for m in lobby.members], game._end_time, game.runtime)
+        await Stats.update_on_game_end(
+            [m.id for m in lobby.members],
+            game._end_time, # type: ignore
+            game.runtime
+        )
             
 
 async def setup(bot):

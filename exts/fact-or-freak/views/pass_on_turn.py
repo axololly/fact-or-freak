@@ -5,7 +5,7 @@ from discord import ButtonStyle as BS, Colour, Embed, Interaction, Member
 from discord.ui import View, Button
 
 class UserOptionButton(Button):
-    view: PassOnTurnUI
+    view: PassOnTurnUI # type: ignore
 
     def __init__(self, deciding_member: Member, user_as_option: Member) -> None:
         super().__init__(
@@ -43,6 +43,8 @@ class UserOptionButton(Button):
         self.view.stop()
 
 class PassOnTurnUI(OwnedView):
+    children: list[UserOptionButton] # type: ignore
+
     def __init__(self, member_to_decide: Member, all_members: list[Member]) -> None:
         super().__init__(owner = member_to_decide)
         

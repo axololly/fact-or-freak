@@ -7,7 +7,7 @@ from discord.ui import button, Button
 from ..enums import LobbyExitCodes
 
 class StartEarly(Button):
-    view: Lobby
+    view: Lobby # type: ignore
 
     def __init__(self, leader: Member) -> None:
         super().__init__(
@@ -46,6 +46,8 @@ class StartEarly(Button):
         self.view.stop()
 
 class Lobby(FixedTimeView):
+    children: list[Button] # type: ignore
+    
     # Set of user IDs currently in lobbies
     in_lobbies: set[Member] = set()
 
@@ -76,7 +78,7 @@ class Lobby(FixedTimeView):
             self.add_item(self.start_early_button)
 
         await interaction.followup.edit_message(
-            interaction.message.id,
+            interaction.message.id, # type: ignore
 
             embed = Embed(
                 title = f"{HEART_SPIN}  {self.lobby_name}",
@@ -115,8 +117,8 @@ class Lobby(FixedTimeView):
                 ephemeral = True
             )
     
-        self.members.append(interaction.user)
-        self.in_lobbies.add(interaction.user)
+        self.members.append(interaction.user) # type: ignore
+        self.in_lobbies.add(interaction.user) # type: ignore
 
         await interaction.response.send_message(
             embed = Embed(

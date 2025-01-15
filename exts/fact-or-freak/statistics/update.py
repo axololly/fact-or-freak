@@ -4,7 +4,7 @@ from sqlite3 import Row
 from typing import overload
 
 class UpdateStatistics:
-    pool: Pool | None = None
+    pool: Pool
 
     @classmethod
     async def create_new_user(cls, user_id: int) -> None:
@@ -41,7 +41,7 @@ class UpdateStatistics:
 
             row = await req.fetchone()
         
-        return bool(row["x"])
+        return bool(row["x"]) # type: ignore
 
     @classmethod
     async def _increment(cls, column_name: str, user_id: int) -> None:
@@ -103,7 +103,7 @@ class UpdateStatistics:
                 SET games_played = games_played + 1
                 WHERE user_id = ?
                 """,
-                map(tuple, player_ids)
+                map(tuple, player_ids) # type: ignore
             )
     
     @classmethod
@@ -150,7 +150,12 @@ class UpdateStatistics:
         "Fetch data for all the column names given in `columns`."
     
     @classmethod
-    async def fetch(cls, user_id: int, column: str = None, columns: list[str] = "*") -> Row | None:
+    async def fetch( # type: ignore
+        cls,
+        user_id: int,
+        column: str | None = None,
+        columns: str | list[str] = "*"
+    ) -> Row | None:
         if column and columns or not column and not columns:
             raise ValueError("you must provide an argument for either 'column' or 'columns'.")
             

@@ -4,7 +4,7 @@ from decals import CHECK, CROSS
 from discord import ButtonStyle as BS, Colour, Embed, Interaction, Member, TextStyle
 from discord.app_commands import Group
 from discord.ext.commands import Cog
-from discord.ui import View, button, Modal, TextInput
+from discord.ui import View, button, Button, Modal, TextInput
 from .enums import Category
 from re import match
 from sqlite3 import IntegrityError
@@ -28,7 +28,7 @@ class BulkSubmissionModal(Modal):
         is_pm, hour = divmod(now.hour, 12)
         formatted_datetime = f"{hour}:{now.minute:0>2}{['a', 'p'][is_pm]}m"
 
-        async with interaction.client.pool.acquire() as conn:
+        async with interaction.client.pool.acquire() as conn: # type: ignore
             for position, question in enumerate(self.field.value.split('\n')):
                 result = match(r"(truth|dare) - .+", question)
 
@@ -127,13 +127,13 @@ class SingleSubmissionModal(Modal):
 
     async def on_submit(self, interaction: Interaction):
         if username := self.addressed_to.value:
-            if member := interaction.guild.get_member_named(username):
+            if member := interaction.guild.get_member_named(username): # type: ignore
                 addressed_to_id = member.id
             else:
                 return await interaction.response.send_message(
                     embed = Embed(
                         title = f"{CROSS}  Schizos aren't allowed.",
-                        description = f"Looks like I couldn't find anyone in the _{interaction.guild.name}_ server under the name `{username}`.\n\nCheck the name is right and try it again.",
+                        description = f"Looks like I couldn't find anyone in the _{interaction.guild.name}_ server under the name `{username}`.\n\nCheck the name is right and try it again.", # type: ignore
                         colour = Colour.brand_red()
                     )
                 )
@@ -145,7 +145,7 @@ class SingleSubmissionModal(Modal):
         is_pm, hour = divmod(now.hour, 12)
         formatted_datetime = f"{hour}:{now.minute:0>2}{['a', 'p'][is_pm]}m"
 
-        async with interaction.client.pool.acquire() as conn:
+        async with interaction.client.pool.acquire() as conn: # type: ignore
             try:
                 await conn.execute(
                     "INSERT INTO questions (submitter_id, when_submitted, category, content, addressed_to) VALUES (?, ?, ?, ?, ?)",
@@ -173,7 +173,7 @@ class SingleSubmissionModal(Modal):
             embed = Embed(
                 title = f"{CHECK}  All done!",
                 description = "Your question went through perfectly fine! You'll see it in future rounds"
-                            + ("." if addressed_to_id == -1 else f", especially if `{member.name}` gets on."),
+                            + ("." if addressed_to_id == -1 else f", especially if `{member.name}` gets on."), # type: ignore
                 colour = Colour.brand_green()
             ).set_footer(
                 text = f"Submission time: {formatted_datetime}"
@@ -187,6 +187,8 @@ class SingleSubmissionModal(Modal):
 # ------------------------------------------------------------------------------------------------------------------------
 
 class CategorySelectionView(View):
+    children: list[Button] # type: ignore
+
     def __init__(self, member: Member) -> None:
         super().__init__(timeout = 30)
         self.member = member
@@ -208,7 +210,7 @@ class CategorySelectionView(View):
             self.dare.style = BS.green
 
         await interaction.followup.edit_message(
-            interaction.message.id,
+            interaction.message.id, # type: ignore
             view = self
         )
 
@@ -240,7 +242,7 @@ class Submissions(Cog):
 
     @submit.command(name = "single", description = "Submit one question that can be asked in certain rounds.")
     async def single(self, interaction: Interaction):
-        view = CategorySelectionView(interaction.user)
+        view = CategorySelectionView(interaction.user) # type: ignore
 
         await interaction.response.send_message(
             embed = Embed(

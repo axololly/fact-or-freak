@@ -1,4 +1,4 @@
-from .bases import FixedTimeView, OwnedView
+from .bases import OwnedView
 from .confirm_pass import ConfirmPassUI
 from decals import CHECK, CROSS
 from discord import ButtonStyle as BS, Colour, Embed, Interaction, Member

@@ -1,7 +1,7 @@
+from bot import MyBot, OWNER_ID
 from .category_select import CategorySelectionUI
-from bot import OWNER_ID
 from decals import GOLD, SILVER, BRONZE, DEVELOPER, CROSS, HEART_SHINE, HEART_BREAK
-from discord import Colour, Embed, Interaction, InteractionMessage, Member, WebhookMessage
+from discord import Colour, Embed, Interaction, Member, Message, TextChannel
 from discord.ui import View
 from ..enums import PromptExitCode
 from .get_response import GetResponseUI
@@ -9,16 +9,22 @@ from .pass_on_turn import PassOnTurnUI
 from random import choice
 from sqlite3 import Row
 from ..statistics.update import UpdateStatistics as Stats
-from time import time as get_current_timestamp
+from time import time
+
+def get_current_timestamp() -> int:
+    return int(time())
 
 class GameUI(View):
     _start_time: int | None
     _end_time: int | None
 
-    message: InteractionMessage
+    message: Message
 
-    def __init__(self, members: list[Member]) -> None:
+    def __init__(self, members: list[Member], bot: MyBot) -> None:
         super().__init__()
+
+        self.bot = bot
+        self.pool = bot.pool
 
         self.players = {member: 3 for member in members}
         self.dead_players: list[Member] = []
@@ -51,7 +57,7 @@ class GameUI(View):
             )
             return False
         
-        if interaction.user not in self.members:
+        if interaction.user not in self.players:
             await interaction.response.send_message(
                 embed = Embed(
                     title = "Not so fast!",
@@ -66,9 +72,9 @@ class GameUI(View):
     
     async def prompt_for_response(
         self,
-        interaction: Interaction,
+        channel: TextChannel,
         person_to_prompt: Member
-    ) -> tuple[WebhookMessage, Row, str] | PromptExitCode:
+    ) -> tuple[Message, Row, str] | PromptExitCode:
         """
         Prompt a user for a response, returning a tuple of the message
         sent, the question data from the database and the prompted user's
@@ -78,15 +84,14 @@ class GameUI(View):
         category_select = CategorySelectionUI(person_to_prompt)
 
         # Ask to select between `Truth` or `Dare`
-        category_selection_message = await interaction.followup.send(
-            content = person_to_prompt.mention,
+        category_selection_message = await channel.send(
+            person_to_prompt.mention,
             embed = Embed(
                 title = "Category Selection",
                 description = f"Select a category of questions from the options below.\n\nYou must answer: <t:{int(get_current_timestamp()) + 22}:R>",
                 colour = Colour.blurple()
             ),
-            view = category_select,
-            wait = True
+            view = category_select
         )
 
         if await category_select.wait():
@@ -98,7 +103,7 @@ class GameUI(View):
         )
 
         # Get question data from database
-        async with interaction.client.pool.acquire() as conn:
+        async with self.pool.acquire() as conn:
             req = await conn.execute(
                 """
                 SELECT
@@ -118,9 +123,9 @@ class GameUI(View):
             question_data = await req.fetchone()
 
         # Find the user who made the question
-        submitter = interaction.client.get_user(question_data["submitter_id"])
+        submitter = self.bot.get_user(question_data["submitter_id"]) # type: ignore
 
-        question = question_data["content"]
+        question = question_data["content"] # type: ignore
 
         # Prepare a method to get a response from the user
         get_response_menu = GetResponseUI(question, person_to_prompt, self.players[person_to_prompt])
@@ -128,20 +133,18 @@ class GameUI(View):
         # Show selected question and ask for response
         await category_selection_message.delete()
 
-        question_message = await interaction.followup.send(
-            content = self.current_player.mention,
+        question_message = await channel.send(
+            self.current_player.mention,
 
             embed = Embed(
                 title = f"{category_select.response.name.removeprefix("Chose")}: {question[0].lower()}{question[1:]}",
                 description = f"Respond to this by:\n- clicking the `Submit` button to submit an answer.\n- passing on the question using the `Pass` button.\n\nYou have to respond: <t:{int(get_current_timestamp()) + 46}:R>"
             ).set_author(
-                name = f"From {submitter.name}",
-                icon_url = submitter.display_avatar.url
+                name = f"From {submitter.name}", # type: ignore
+                icon_url = submitter.display_avatar.url # type: ignore
             ),
             
-            view = get_response_menu,
-
-            wait = True
+            view = get_response_menu
         )
 
         await get_response_menu.wait()
@@ -177,17 +180,17 @@ class GameUI(View):
 
         answer = get_response_menu.response
 
-        return question_message, question_data, answer
+        return question_message, question_data, answer # type: ignore
     
-    async def get_next_player(self, interaction: Interaction) -> Member:
+    async def get_next_player(self, channel: TextChannel) -> Member:
         """
         Get the next player to continue the game. If the user doesn't
         respond in time, another player will be randomly chosen.
         """
 
-        view = PassOnTurnUI(self.current_player, self.players)
+        view = PassOnTurnUI(self.current_player, [p for p in self.players])
 
-        message = await interaction.followup.send(
+        message = await channel.send(
             self.current_player.mention,
 
             embed = Embed(
@@ -195,9 +198,7 @@ class GameUI(View):
                 description = f"{'\n'.join(f"{n + 1}. {p.mention}  {' '.join(HEART_SHINE for _ in range(self.players[p]))}" for n, p in enumerate(self.players))}\n\nSelect the person you want to pass the turn onto.\nThis must be done: <t:{int(get_current_timestamp()) + 22}:R>",
                 colour = Colour.blurple()
             ),
-            view = view,
-
-            wait = True
+            view = view
         )
 
         if await view.wait():
@@ -214,25 +215,21 @@ class GameUI(View):
         
             return randomly_chosen_player
         
-        return view.selected_member
+        return view.selected_member # type: ignore
     
-    async def run(self, interaction: Interaction) -> None:
+    async def run(self, channel: TextChannel) -> None:
         self._start_time = int(get_current_timestamp())
-
-        # Chuck out the first response - everything uses `.followup.`
-        if not interaction.response.is_done():
-            await interaction.response.defer()
 
         while True:
             # Prompt for a response from the current player
-            response = await self.prompt_for_response(interaction, self.current_player)
+            response = await self.prompt_for_response(channel, self.current_player)
 
             # Timed out or passed on the question - take away a life
             if isinstance(response, PromptExitCode) and response != PromptExitCode.Normal:                
                 self.players[self.current_player] -= 1
 
                 if self.players[self.current_player] == 0:
-                    await interaction.followup.send(
+                    await channel.send(
                         self.current_player.mention,
 
                         embed = Embed(
@@ -244,27 +241,26 @@ class GameUI(View):
 
                     await Stats.update_on_death(self.current_player.id)
 
-                    self.dead_players.append(
-                        self.players.pop(self.current_player)
-                    )
+                    self.dead_players.append(self.current_player)
+                    self.players.pop(self.current_player)
 
                     # Last man standing, end game
                     if len(self.players) == 1:
-                        return await self.game_over(interaction)
+                        return await self.game_over(channel)
 
                 self.current_player = choice(list(self.players))
                 
                 continue
 
-            qmsg, qdata, qreply = response
+            qmsg, qdata, qreply = response # type: ignore
             question = qdata["content"]
-            submitter = interaction.client.get_user(qdata["submitter_id"])
+            submitter = self.bot.get_user(qdata["submitter_id"])
 
             # Delete the other message
             await qmsg.delete()
 
             # Send what the user put in the chat
-            await interaction.followup.send(
+            await channel.send(
                 embed = Embed(
                     title = f"{"Dare" if qdata["category"] else "Truth"}: {question[0].lower()}{question[1:]}",
                     description = "> " + qreply.replace('\n', '\n> '),
@@ -273,15 +269,15 @@ class GameUI(View):
                     name = f"Answered by {self.current_player}",
                     icon_url = self.current_player.display_avatar.url
                 ).set_footer(
-                    text = f"Asked by {submitter.name}",
-                    icon_url = submitter.display_avatar.url
+                    text = f"Asked by {submitter.name}", # type: ignore
+                    icon_url = submitter.display_avatar.url # type: ignore
                 )
             )
 
             # Get the next member to participate
-            self.current_player = await self.get_next_player(interaction)
+            self.current_player = await self.get_next_player(channel)
 
-    async def game_over(self, interaction: Interaction) -> None:
+    async def game_over(self, channel: TextChannel) -> None:
         "End the game and announce the winners."
 
         self._end_time = int(get_current_timestamp())
@@ -316,8 +312,8 @@ class GameUI(View):
                 value = '\n'.join(f"{n + 4}. ~~{other_dead_players[n].mention}~~" for n in range(len(other_dead_players)))
             )
 
-        await interaction.followup.send(
-            content = ' '.join(p.mention for p in list(self.players) + self.dead_players),
+        await channel.send(
+            ' '.join(p.mention for p in list(self.players) + self.dead_players),
             embed = scores_embed
         )
 

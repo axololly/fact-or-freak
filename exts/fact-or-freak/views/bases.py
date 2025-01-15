@@ -1,4 +1,3 @@
-# from abc import ABC
 from asyncio import wait_for, TimeoutError as _TimeoutError
 from discord import Interaction, Member
 from discord.ui import View
@@ -23,7 +22,7 @@ class FixedTimeView(View):
 
         super().__init__(timeout = timeout)
 
-    async def wait(self) -> None:
+    async def wait(self) -> bool:
         """
         Operates the same as `View.wait` by pausing the logic until
         the view closes, but uses `asyncio.wait_for` instead to enforce
@@ -35,10 +34,13 @@ class FixedTimeView(View):
         
         try:
             await wait_for(super().wait(), timeout = self.timeout)
+            return False
         
         except _TimeoutError:
             await self.on_timeout()
             self.stop()
+            
+            return True
     
     def __repr__(self) -> str:
         return f"<FixedTimeView timeout={self.timeout}>"
