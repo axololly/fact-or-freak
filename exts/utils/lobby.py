@@ -1,10 +1,11 @@
 from __future__ import annotations
 from bot import OWNER_ID
 from .bases import FixedTimeView
-from ..fact_or_freak.decals import CHECK, CROSS, OWNER_CROWN, DEVELOPER, HEART_SPIN, HEART_SHINE
+from datetime import datetime as dt
 from discord import AllowedMentions, ButtonStyle as BS, Colour, Embed, Interaction, Member
 from discord.ui import button, Button
-from ..fact_or_freak.enums import LobbyExitCodes
+from ..games.fact_or_freak.decals import CHECK, CROSS, OWNER_CROWN, DEVELOPER, HEART_SPIN, HEART_SHINE
+from ..games.fact_or_freak.enums import LobbyExitCodes
 
 class StartEarly(Button):
     view: Lobby # type: ignore
@@ -54,6 +55,8 @@ class Lobby(FixedTimeView):
     def __init__(self, timeout: float, leader: Member, name: str) -> None:
         super().__init__(timeout = timeout)
 
+        self.end_ts = int(dt.now().timestamp() + timeout) + 2
+
         self.members: list[Member] = [leader]
         self.leader = leader
         self.lobby_name = name
@@ -89,7 +92,8 @@ class Lobby(FixedTimeView):
                         for member in self.members
                         if member != self.leader
                     ]
-                ) + '\n\n' + f'-# {len(self.members)} member{'s' if len(self.members) > 1 else ''}.',
+                ) + '\n\n' + f'-# {len(self.members)} member{'s' if len(self.members) > 1 else ''}.'
+                + f'\n\nClosing <t:{self.end_ts}:R>',
                 colour = Colour.blurple()
             ),
             view = self
