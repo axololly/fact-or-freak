@@ -1,50 +1,151 @@
-from asyncio import sleep
+from aiofiles import open as aopen
+from asyncio import sleep as wait
 from bot import MyBot
-from discord import Colour, Embed
-from discord.ext.commands import command, Cog, Context
+from discord import Embed
+from discord.ext.commands import check, command, errors, group, Cog, Context
 from frontmatter import Frontmatter
 from .guide import Guides
+from logging import getLogger
+
+logger = getLogger(__name__)
+
+def is_owner():
+    async def predicate(ctx: Context) -> bool:
+        if ctx.author.id == 566653183774949395:
+            return True
+        else:
+            await ctx.reply("This is for the owner only.")
+            return False
+
+    return check(predicate)
+
+# For clarity in typehints
+type Alias = str
+type ExtensionName = str
+
+BLUE_ARROW_RIGHT = "<a:blue_arrow_right:1330550362410848317>"
 
 class BotUtils(Cog):
+    reload_aliases: dict[Alias, ExtensionName]
+
     def __init__(self, bot: MyBot) -> None:
         self.bot = bot
         self.pool = bot.pool
         
         self.fm = Frontmatter()
+
+    async def cog_load(self) -> None:
+        self.reload_aliases = {}
+
+        async with aopen("exts/commands/aliases.txt") as f:
+            for pos, line in enumerate((await f.read()).split('\n')):
+                if not line:
+                    continue
+                
+                parts = line.split('\x00')
+
+                if len(parts) != 2:
+                    logger.critical(f"'aliases.txt' file contains an invalid format on line {pos + 1}. Please examine now.")
+
+                    return
+                
+                alias, ext = parts
+
+                self.reload_aliases[alias] = ext
     
-    @command(name = 'reload')
+    async def cog_unload(self) -> None:
+        async with aopen("exts/commands/aliases.txt", "w") as f:
+            await f.write(
+                '\n'.join(
+                    f"{alias}\x00{ext}"
+                    for alias, ext in self.reload_aliases.items()
+                )
+            )
+
+    @is_owner()
+    @command()
+    async def load(self, ctx: Context, extension: str):
+        await self.bot.load_extension(extension)
+
+        await ctx.reply(f"Loaded the `{extension}` extension.")
+    
+    @load.error
+    async def load_EH(self, ctx: Context, error: errors.CommandError):
+        if isinstance(error, errors.NoEntryPointError):
+            return await ctx.reply("That file doesn't have a `setup()` function.")
+        
+        elif isinstance(error, errors.ExtensionAlreadyLoaded):
+            return await ctx.reply("That extension is already loaded.")
+
+        elif isinstance(error, errors.ExtensionNotFound):
+            return await ctx.reply("That's not a valid extension path. You sure that's right?")
+        
+        else:
+            raise error
+    
+    @is_owner()
+    @group(name = 'reload', invoke_without_command = True)
     async def reload(self, ctx: Context, extension: str):
-        if ctx.author.id != 566653183774949395:
-            await ctx.reply("This is for the owner only.")
+        if not ctx.guild:
+            await ctx.reply("You can only run this in a guild!")
+            return
         
         if extension == "all":
             for ext in self.bot._extensions:
                 await self.bot.reload_extension(ext)
             
-            await ctx.reply("Reloaded `all` extensions.", delete_after = 2.0)
-            await sleep(2.0)
-            await ctx.message.delete()
+            return await ctx.reply("Reloaded `all` extensions.")
         
-        else:
-            await self.bot.reload_extension(extension)
-            await ctx.reply(f"Reloaded the `{extension}` extension.", delete_after = 2.0)
-            await sleep(2.0)
-            await ctx.message.delete()
+        # If extension is an alias, correct it to the default name
+        extension = self.reload_aliases.get(extension, extension)
+
+        if extension not in self.bot._extensions:
+            return await ctx.reply("That's not a valid extension.", delete_after = 2.0)
+
+        await self.bot.reload_extension(extension)
+        await ctx.reply(f"Reloaded the `{extension}` extension.", delete_after = 2.0)
+        
+        await wait(2.0)
+        
+        await ctx.message.delete()
+
+    @is_owner()
+    @reload.command(name = "alias")
+    async def add_alias(self, ctx: Context, extension: str, alias: str):
+        if extension not in self.bot._extensions:
+            return await ctx.reply("That's not a valid extension.", delete_after = 2.0)
+        
+        existing = self.reload_aliases.get(alias)
+        existing_text = f"from `{existing}` " if existing else ''
+
+        self.reload_aliases[alias] = extension
+
+        await ctx.reply(f"Changed the alias `{alias}` to point {existing_text}to the extension `{extension}`")
+
+    @reload.command(name = "aliases")
+    async def show_aliases(self, ctx: Context):
+        await ctx.reply(
+            embed = Embed(
+                title = "Current Aliases",
+                description = '\n'.join(
+                    f"- `{alias}` {BLUE_ARROW_RIGHT} `{ext}`"
+                    for alias, ext in self.reload_aliases.items()
+                ) or "Hmm, there's nothing here.",
+                colour = self.bot.EMBED_COLOUR
+            )
+        )
 
     @command(name = 'sync')
     async def sync(self, ctx: Context):
-        if ctx.author.id != 566653183774949395:
-            await ctx.reply("This is for the owner only.")
-        
         synced = await self.bot.tree.sync()
 
-        await ctx.reply(f"Synced {len(synced)} commands: ```yml\n{tuple(synced)!a}\n```")
+        await ctx.reply(f"Synced {len(synced)} commands:\n{'\n'.join(f"{x}. `/{cmd}`" for x, cmd in enumerate(synced))}")
     
 
     @command(name = 'prefix')
     async def set_prefix(self, ctx: Context, prefix: str | None = None):
         if not prefix:
-            embed = Guides.build_embed(self.fm, "set-prefix")
+            embed = Guides.build_embed(self.fm, "guides/set-prefix.md")
 
             if embed:
                 await ctx.reply(embed = embed)

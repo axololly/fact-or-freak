@@ -13,7 +13,6 @@ class LinkButton(Button):
     def __init__(self, url: str, label: str, /) -> None:
         super().__init__(
             label = label,
-            style = BS.url,
             url = url
         )
 

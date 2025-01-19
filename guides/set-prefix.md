@@ -1,4 +1,5 @@
 ---
+aliases: ["prefix"]
 embed:
     title: Setting Custom Prefixes
 ---

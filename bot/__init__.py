@@ -1,8 +1,8 @@
 from asqlite import create_pool, Pool
 from discord.ext.commands import Bot
-from discord import Activity, ActivityType, Message, Intents
+from discord import Activity, ActivityType, Colour, Embed, Forbidden, HTTPException, Member, Message, Intents, User
 from discord.app_commands import Group
-from discord.ext.commands import Command
+from discord.ext.commands import Command, Context, errors
 from exts.games.fact_or_freak.statistics.update import UpdateStatistics
 from exts.utils.mentionable_tree import MentionableTree
 from glob import glob as find
@@ -22,10 +22,13 @@ class MyBot(Bot):
     "A dictionary mapping names to their `Command` instances."
 
     EMBED_COLOUR = 0x2c89c9
+
+    owner: User
     
     def __init__(self) -> None:
         super().__init__(
             command_prefix = '?',
+            help_command = None,
             intents = Intents.all(),
             tree_cls = MentionableTree
         )
@@ -50,16 +53,14 @@ class MyBot(Bot):
 
         for path in find('exts/**/*.py', recursive = True):
             if 'async def setup' in open(path, errors = "ignore").read():
-                path = path.replace('.py', '').replace('\\', '.')
-                
-                self._extensions.append(path)
-
-                await self.load_extension(path)
+                await self.load_extension(path.replace('.py', '').replace('\\', '.'))
 
         self._commands = {
             cmd.qualified_name: cmd
             for cmd in self.get_all_commands()
         }
+
+        self.owner = self.get_user(566653183774949395) or await self.fetch_user(566653183774949395)
         
     def get_all_commands(self) -> Generator[Command, None, None]:
         """
@@ -84,6 +85,22 @@ class MyBot(Bot):
                     yield from unpack_group(cmd)
                 else:
                     yield cmd # type: ignore
+
+    async def load_extension(self, name: str, /): # type: ignore
+        await super().load_extension(name)
+        
+        if name not in self._extensions:
+            self._extensions.append(name)
+
+    async def can_dm(self, person: User | Member, /) -> bool: # type: ignore
+        "Check to see if a user can be directly messaged."
+        
+        try:
+            await person.send()
+        except Forbidden:
+            return False
+        except HTTPException:
+            return True
     
     async def on_ready(self) -> None:
         await self.change_presence(
@@ -92,6 +109,32 @@ class MyBot(Bot):
                 name = "Joelle's gorgeous boobs glistening in maple syrup."
             )
         )
+
+    async def on_command_error(self, ctx: Context, error: errors.CommandError):
+        if isinstance(error, errors.CommandNotFound):
+            await ctx.reply(
+                embed = Embed(
+                    title = "Nuh uh.",
+                    description = "Looks like that's not a real command. If you wanna suggest it, send me a DM to talk to my owner, and maybe we can discuss something.",
+                    colour = Colour.brand_red()
+                ),
+                delete_after = 5.0
+            )
+            return
+
+        else:
+            raise error
+
+    async def close(self) -> None:
+        await super().close()
+
+        await self.docs_db_pool.close()
+        await self.pool.close()
     
-    def run(self, token: str) -> None: # type: ignore
-        super().run(token, log_handler = get_handler())
+    def run(self) -> None: # type: ignore
+        super().run(
+            open("token.txt").read(),
+
+            log_handler = get_handler(),
+            root_logger = True
+        )

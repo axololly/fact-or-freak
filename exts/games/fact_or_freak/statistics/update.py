@@ -120,7 +120,7 @@ class UpdateStatistics:
                 SET games_played = games_played + 1
                 WHERE user_id = ?
                 """,
-                map(tuple, player_ids) # type: ignore
+                [(x,) for x in player_ids]
             )
     
     @classmethod
