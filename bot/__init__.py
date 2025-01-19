@@ -33,10 +33,10 @@ class MyBot(Bot):
         self._commands = {}
     
     async def setup_hook(self) -> None:
-        self.pool = await create_pool('data.sql')
+        self.pool = await create_pool('main-database.sql')
         UpdateStatistics.pool = self.pool
 
-        self.docs_db_pool = await create_pool('../exts/utils/docs/index.sql')
+        self.docs_db_pool = await create_pool('../exts/utils/documentation.sql')
 
         for path in find('exts/**/*.py', recursive = True):
             if 'async def setup' in open(path, errors = "ignore").read():
