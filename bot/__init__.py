@@ -1,7 +1,6 @@
 from asqlite import create_pool, Pool
-from datetime import datetime as dt
 from discord.ext.commands import Bot
-from discord import Intents, Activity, ActivityType
+from discord import Activity, ActivityType, Message, Intents
 from discord.app_commands import Group
 from discord.ext.commands import Command
 from exts.games.fact_or_freak.statistics.update import UpdateStatistics
@@ -14,11 +13,15 @@ OWNER_ID = 566653183774949395
 
 class MyBot(Bot):
     pool: Pool
-    _extensions: list[str]
     tree: MentionableTree # type: ignore
+
+    _extensions: list[str]
+    "A list of module paths for extensions loaded by the bot."
 
     _commands: dict[str, Command]
     "A dictionary mapping names to their `Command` instances."
+
+    EMBED_COLOUR = 0x2c89c9
     
     def __init__(self) -> None:
         super().__init__(
@@ -28,15 +31,22 @@ class MyBot(Bot):
         )
         
         self._extensions = []
-        "A list of module paths for extensions loaded by the bot."
-
-        self._commands = {}
+    
+    async def get_prefix(self, message: Message, /) -> str:
+        async with self.pool.acquire() as conn:
+            req = await conn.execute(
+                "SELECT prefix FROM custom_prefixes WHERE user_id = ?",
+                message.author.id
+            )
+            row = await req.fetchone()
+        
+        return row["prefix"] if row else str(self.command_prefix)
     
     async def setup_hook(self) -> None:
         self.pool = await create_pool('main-database.sql')
         UpdateStatistics.pool = self.pool
 
-        self.docs_db_pool = await create_pool('../exts/utils/documentation.sql')
+        self.docs_db_pool = await create_pool('exts/utils/documentation.sql')
 
         for path in find('exts/**/*.py', recursive = True):
             if 'async def setup' in open(path, errors = "ignore").read():

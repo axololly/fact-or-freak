@@ -1,7 +1,7 @@
 from discord import Interaction, Member, ButtonStyle as BS
 from discord.ui import button, Button
 from ..enums import CategorySelectionResponse
-from ...utils.bases import OwnedView
+from ....utils.bases import OwnedView
 
 class CategorySelectionUI(OwnedView):
     children: list[Button] # type: ignore

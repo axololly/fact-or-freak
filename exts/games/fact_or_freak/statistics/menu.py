@@ -1,7 +1,7 @@
 from ..decals import BRONZE, SILVER, GOLD, DIAMOND, DEVELOPER, PURPLE_BADGE
 from discord import Embed, Interaction, Member, SelectOption
 from discord.ui import Select
-from ...utils.bases import OwnedView
+from ....utils.bases import OwnedView
 from .update import UpdateStatistics as Stats
 
 def format_seconds(seconds: int) -> str:

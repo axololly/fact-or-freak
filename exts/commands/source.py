@@ -96,7 +96,7 @@ class SourceCode(Cog):
         return Embed(
             title = "🔍  Gotcha!",
             description = f"Click the link below to see the source code for {mention}.",
-            colour = Colour.dark_embed()
+            colour = MyBot.EMBED_COLOUR
         )
 
     @describe(name = "The command to get the source code of.")
@@ -107,7 +107,7 @@ class SourceCode(Cog):
                 embed = Embed(
                     title = "My Source Code",
                     description = "Come and see how I'm even possible in the first place!",
-                    colour = 0x77cfd8
+                    colour = MyBot.EMBED_COLOUR
                 ),
                 view = add_link_button(self.github_repo_url, "Go to GitHub")
             )

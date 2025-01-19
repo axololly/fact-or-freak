@@ -19,8 +19,12 @@ class RTFM(Cog):
     @allowed_installs(guilds = True, users = True)
     @allowed_contexts(guilds = True, dms = True, private_channels = True)
     @describe(query = "the Python or discord.py object to search for.")
-    @hybrid_command(name = "docs", description = "Get documentation for a specified Python or discord.py object - standard library included.")
-    async def docs(self, ctx: Context, query: str):
+    @hybrid_command(
+        name = "docs",
+        aliases = ['d', 'rtfm', 'rtfd'],
+        description = "Get documentation for a specified Python or discord.py object - standard library included.",
+    )
+    async def get_documentation(self, ctx: Context, query: str):
         async with self.docs_db_pool.acquire() as conn:
             req = await conn.execute("SELECT name, link, usage, description, module_name FROM 'sphinx-symbols' WHERE name = ?", query)
             row = await req.fetchone()
@@ -51,7 +55,7 @@ class RTFM(Cog):
                     row["usage"], row["description"]
                 ]),
 
-                colour = Colour.dark_embed()
+                colour = MyBot.EMBED_COLOUR
             ).set_footer(
                 text = f"This is a {row["module_name"]} object."
             )
