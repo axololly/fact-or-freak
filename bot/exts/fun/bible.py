@@ -2,11 +2,12 @@ import re
 from aiohttp import ClientSession as CS
 from bot import MyBot
 from discord import Colour, Embed
-from discord.ext.commands import Cog, Context, command, hybrid_command
+from discord.ext.commands import Cog, Context, hybrid_command
 from logging import getLogger
 
 logger = getLogger(__name__)
 
+# To remove ambiguity
 type Verse = str
 type Scripture = str
 
@@ -35,12 +36,12 @@ class BibleLookup(Cog):
         
         Parameters
         ----------
-        verse: `str`
+        verse: `Verse`
             the descriptor used to locate the verse.
         
         Returns
         -------
-        `str`
+        `Scripture`
             the desired scripture.
         
         Raises

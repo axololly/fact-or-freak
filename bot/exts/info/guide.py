@@ -1,13 +1,14 @@
-import re
 from aiofiles import open as aopen
 from bot import MyBot
 from discord import Colour, Embed
 from discord.app_commands import allowed_contexts, allowed_installs
 from discord.ext.commands import Cog, Context, hybrid_command
+from exts.utils.converters import CleanSymbol
 from frontmatter import Frontmatter
 from glob import glob as find
 from os.path import exists as path_exists
 from logging import getLogger
+from typing import Annotated
 
 logger = getLogger(__name__)
 
@@ -53,9 +54,7 @@ class Guides(Cog):
     @allowed_installs(guilds = True, users = True)
     @allowed_contexts(guilds = True, dms = True, private_channels = True)
     @hybrid_command(name = "guide", description = "Get a given guide to something about the bot.")
-    async def get_guide(self, ctx: Context, name: str):
-        name = re.sub(r"([\w\-\.]+)(?: .+)?", r'\1', name)
-
+    async def get_guide(self, ctx: Context, name: Annotated[str, CleanSymbol]):
         name = self.guide_aliases.get(name, name)
 
         if not path_exists(f"guides/{name}.md"):

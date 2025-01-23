@@ -20,7 +20,7 @@ def get_handler() -> logging.FileHandler:
     else:
         latest = dt.now()
 
-    new_path = latest.strftime("logs/%d-%m-%Y.log")
+    new_path = latest.strftime("bot/logs/%d-%m-%Y.log")
 
     with open(new_path, 'w'): ...
 

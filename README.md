@@ -1,6 +1,6 @@
 # `☾` Luna v2
 
-![The profile picture of the bot.](https://cdn.discordapp.com/attachments/1205631168238850069/1329558960595800155/10e7c19b06e517e4697c3b01d37381db.png?ex=678cc206&is=678b7086&hm=31d44901725d2349d6839dfe226de6f596800559ee8383a5fc29223c94bf30ed&)
+![The profile picture of the bot.](https://i.ibb.co/SsVc7Qb/image-2025-01-23-214026997.png)
 
 A Discord bot I made for me and my friends (the good ones, this time) - with the Truth-or-Dare game being completed in three days.
 

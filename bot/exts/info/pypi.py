@@ -1,12 +1,12 @@
 from __future__ import annotations
-import re
 from aiohttp import ClientSession as CS
 from bot import MyBot
 from discord import Colour, Embed
 from discord.ext.commands import check, Context, Cog, hybrid_command
 from dataclasses import dataclass
 from datetime import datetime
-from typing import overload
+from exts.utils.converters import CleanSymbol
+from typing import Annotated, overload
 
 def is_owner():
     async def predicate(ctx: Context):
@@ -129,9 +129,16 @@ class LookupPyPI(Cog):
         self.bot = bot
     
     @hybrid_command(name = 'pypi', aliases = ['pip'])
-    async def pypi_lookup(self, ctx: Context, name: str):
-        name = re.sub(r"([\w\-\.]+)(?: .+)?", r'\1', name)
+    async def pypi_lookup(self, ctx: Context, name: Annotated[str, CleanSymbol]):
+        """
+        Fetches data about a package on the Python Packaging Index (PyPI).
 
+        Parameters
+        ----------
+        name: str
+            the name of the package.
+        """
+        
         package = await Package.find(name)
 
         if not package:

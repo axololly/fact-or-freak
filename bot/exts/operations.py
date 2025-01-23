@@ -4,7 +4,7 @@ from bot import MyBot
 from discord import Embed
 from discord.ext.commands import check, command, errors, group, Cog, Context
 from frontmatter import Frontmatter
-from .guide import Guides
+from .info.guide import Guides
 from logging import getLogger
 
 logger = getLogger(__name__)
@@ -37,7 +37,7 @@ class BotUtils(Cog):
     async def cog_load(self) -> None:
         self.reload_aliases = {}
 
-        async with aopen("exts/commands/aliases.txt") as f:
+        async with aopen("bot/exts/aliases.txt") as f:
             for pos, line in enumerate((await f.read()).split('\n')):
                 if not line:
                     continue
@@ -54,7 +54,7 @@ class BotUtils(Cog):
                 self.reload_aliases[alias] = ext
     
     async def cog_unload(self) -> None:
-        async with aopen("exts/commands/aliases.txt", "w") as f:
+        async with aopen("bot/exts/aliases.txt", "w") as f:
             await f.write(
                 '\n'.join(
                     f"{alias}\x00{ext}"
@@ -62,26 +62,32 @@ class BotUtils(Cog):
                 )
             )
 
+    async def cog_command_error(self, ctx: Context, error: Exception):
+        if isinstance(error, errors.NoEntryPointError):
+            await ctx.reply("That file doesn't have a `setup()` function.")
+            return
+        
+        elif isinstance(error, errors.ExtensionAlreadyLoaded):
+            await ctx.reply("That extension is already loaded.")
+            return
+
+        elif isinstance(error, errors.ExtensionNotFound):
+            await ctx.reply("That's not a valid extension path. You sure that's right?")
+            return
+        
+        elif isinstance(error, errors.MissingRequiredArgument):
+            await ctx.reply(f"`{error.param}` is a required parameter that is missing.")
+            return
+        
+        else:
+            raise error
+
     @is_owner()
     @command()
     async def load(self, ctx: Context, extension: str):
         await self.bot.load_extension(extension)
 
         await ctx.reply(f"Loaded the `{extension}` extension.")
-    
-    @load.error
-    async def load_EH(self, ctx: Context, error: errors.CommandError):
-        if isinstance(error, errors.NoEntryPointError):
-            return await ctx.reply("That file doesn't have a `setup()` function.")
-        
-        elif isinstance(error, errors.ExtensionAlreadyLoaded):
-            return await ctx.reply("That extension is already loaded.")
-
-        elif isinstance(error, errors.ExtensionNotFound):
-            return await ctx.reply("That's not a valid extension path. You sure that's right?")
-        
-        else:
-            raise error
     
     @is_owner()
     @group(name = 'reload', invoke_without_command = True)
@@ -135,6 +141,7 @@ class BotUtils(Cog):
             )
         )
 
+    @is_owner()
     @command(name = 'sync')
     async def sync(self, ctx: Context):
         synced = await self.bot.tree.sync()

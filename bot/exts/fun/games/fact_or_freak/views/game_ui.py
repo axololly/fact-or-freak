@@ -8,7 +8,7 @@ from .get_response import GetResponseUI
 from .pass_on_turn import PassOnTurnUI
 from random import choice
 from sqlite3 import Row
-from ..statistics.update import UpdateStatistics as Stats
+from ..statistics import UpdateStatistics as Stats
 from time import time
 
 def get_current_timestamp() -> int:

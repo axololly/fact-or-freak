@@ -1,11 +1,13 @@
+import re
 from bot import MyBot
-from discord import ButtonStyle as BS, Colour, Embed, Interaction, User
+from discord import Colour, Embed, Interaction
 from discord.app_commands import command as app_command, Choice, describe
 from discord.ext.commands import Cog, Command
 from discord.ui import Button, View
+from exts.utils.converters import CleanSymbol
 from inspect import getsourcelines, getsourcefile
 from pathlib import Path
-import re
+from typing import Annotated
 
 type CommandSourceData = tuple[str, int, int]
 
@@ -30,7 +32,8 @@ class SourceCode(Cog):
         self.github_repo_url = self.get_repo_url()
         self.github_code_url = self.build_github_url()
 
-    def get_repo_url(self) -> str:
+    @staticmethod
+    def get_repo_url() -> str:
         "Get the URL of the repository."
 
         with open(".git/config") as f:
@@ -100,7 +103,7 @@ class SourceCode(Cog):
 
     @describe(name = "The command to get the source code of.")
     @app_command(name = "source", description = "Get a GitHub link to the source code of one of the bot's commands.")
-    async def get_source_code(self, interaction: Interaction, name: str | None = None):
+    async def get_source_code(self, interaction: Interaction, name: Annotated[str, CleanSymbol] | None = None):
         if not name:
             return await interaction.response.send_message(
                 embed = Embed(

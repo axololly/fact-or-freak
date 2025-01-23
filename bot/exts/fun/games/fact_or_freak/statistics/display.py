@@ -2,8 +2,7 @@ from bot import MyBot
 from discord import Interaction, Member
 from discord.app_commands import command as app_command
 from discord.ext.commands import Cog
-from .menu import StatisticsPageMenu
-from .update import UpdateStatistics as Stats
+from . import StatisticsPageMenu, UpdateStatistics as Stats
 
 class DisplayStatistics(Cog):
     def __init__(self, bot: MyBot) -> None:

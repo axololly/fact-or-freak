@@ -6,8 +6,8 @@ from discord.app_commands import command as app_command, rename as arg_rename, d
 from discord.ext.commands import Cog, CommandInvokeError
 from .enums import LobbyExitCodes
 from .views.game_ui import GameUI
-from ...utils.lobby import Lobby
-from .statistics.update import UpdateStatistics as Stats
+from bot.utils.lobby import Lobby
+from .statistics import UpdateStatistics as Stats
 
 class FactOrFreakGame(Cog):
     def __init__(self, bot: MyBot) -> None:
@@ -16,7 +16,7 @@ class FactOrFreakGame(Cog):
     
     @allowed_installs(guilds = True, users = False)
     @allowed_contexts(guilds = True, dms = False, private_channels = False)
-    @app_command(name = "play", description = "Play a game of Truth or Dare.")
+    @app_command(name = "play", description = "Play a game of Fact-or-Freak.")
     @arg_rename(lobby_name = "name")
     @arg_describe(lobby_name = "Set a custom name for the lobby you're about to create.")
     async def play_game(self, interaction: Interaction, lobby_name: str | None = None):
